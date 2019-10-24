@@ -346,6 +346,41 @@ function Test-TargetResource
     return $result
 }
 
+function Export-TargetResource
+{
+    [CmdletBinding()]
+    [OutputType([System.String])]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Yes')]
+        [String]
+        $IsSingleInstance
+    )
+
+    $content = ""
+
+    $keyParams = @{
+        IsSingleInstance = 'Yes'
+        Members          = @()
+    }
+
+    $content += "        SPFarmAdministrators " + [System.Guid]::NewGuid().ToString() + "`r`n"
+    $content += "        {`r`n"
+    $results = Get-TargetResource @keyParams
+    $results = Repair-Credentials -results $results
+
+    $results.Remove('MembersToInclude')
+    $results.Remove('MembersToExclude')
+
+    $results.Members = Set-SPFarmAdministrators $results.Members
+
+    $currentDSCBlock = Get-DSCBlock -Params $results -ModulePath $PSScriptRoot
+    $content += Convert-DSCStringParamToVariable -DSCBlock $currentDSCBlock -ParameterName "Members"
+    $content += "        }`r`n"
+    return $content
+}
+
 function Merge-SPDscFarmAdminList
 {
     param (
