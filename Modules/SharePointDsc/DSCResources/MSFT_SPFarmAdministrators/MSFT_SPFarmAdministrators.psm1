@@ -71,7 +71,6 @@ function Get-TargetResource
             Members          = $farmAdministratorsGroup.users.UserLogin
             MembersToInclude = $params.MembersToInclude
             MembersToExclude = $params.MembersToExclude
-            InstallAccount   = $params.InstallAccount
         }
     }
     return $result
@@ -350,24 +349,18 @@ function Export-TargetResource
 {
     [CmdletBinding()]
     [OutputType([System.String])]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateSet('Yes')]
-        [String]
-        $IsSingleInstance
-    )
+    param()
 
     $content = ""
 
-    $keyParams = @{
-        IsSingleInstance = 'Yes'
-        Members          = @()
-    }
+    $module = $MyInvocation.PSCommandPath
+    $params = Get-DSCFakeParameters -ModulePath $module
+    $params.Remove("MembersToInclude")
+    $params.Remove("MembersToExclude")
 
     $content += "        SPFarmAdministrators " + [System.Guid]::NewGuid().ToString() + "`r`n"
     $content += "        {`r`n"
-    $results = Get-TargetResource @keyParams
+    $results = Get-TargetResource @params
     $results = Repair-Credentials -results $results
 
     $results.Remove('MembersToInclude')

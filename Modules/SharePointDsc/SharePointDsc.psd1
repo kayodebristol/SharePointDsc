@@ -48,7 +48,7 @@
   # ProcessorArchitecture = ''
 
   # Modules that must be imported into the global environment prior to importing this module
-  # RequiredModules = @()
+  RequiredModules = @(@{ModuleName = "ReverseDSC"; RequiredVersion = "1.9.5.1"; })
 
   # Assemblies that must be loaded prior to importing this module
   # RequiredAssemblies = @()
@@ -63,7 +63,7 @@
   # FormatsToProcess = @()
 
   # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
-  NestedModules     = @("modules\SharePointDsc.Util\SharePointDsc.Util.psm1")
+  NestedModules     = @("modules\SharePointDsc.Util\SharePointDsc.Util.psm1", 'Modules\SharePointDsc.Reverse\SharePointDsc.Reverse.psm1')
 
   # Functions to export from this module
   #FunctionsToExport = '*'
@@ -89,7 +89,8 @@
     "Get-SPDscFarmProductsInfo",
     "Get-SPDscFarmVersionInfo",
     "Convert-SPDscADGroupIDToName",
-    "Convert-SPDscADGroupNameToID")
+    "Convert-SPDscADGroupNameToID",
+    "Export-SPConfiguration")
 
   # Variables to export from this module
   #VariablesToExport = '*'

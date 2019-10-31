@@ -39,6 +39,28 @@ function Export-SPConfiguration
     #                                -Value "0" `
     #                                -Description "Default Value Used to Ensure a Configuration Data File is Generated"
 
+    #region "SPFarmSolution"
+    if (($null -ne $ComponentsToExtract -and
+            $ComponentsToExtract.Contains("SPFarmSolution")) -or
+        $AllComponents)
+    {
+        Write-Information "Extracting SPFarmSolution..."
+        try
+        {
+            $SPFarmSolutionModulePath = Join-Path -Path $PSScriptRoot `
+                -ChildPath "..\..\DSCResources\MSFT_SPFarmSolution\MSFT_SPFarmSolution.psm1" `
+                -Resolve
+
+            Import-Module $SPFarmSolutionModulePath | Out-Null
+            $DSCContent += Export-TargetResource
+        }
+        catch
+        {
+            Write-Error "Error exporting SPFarmSolution"
+        }
+    }
+    #endregion
+
     #region "SPFarmAdministrators"
     if (($null -ne $ComponentsToExtract -and
             $ComponentsToExtract.Contains("SPFarmAdministrators")) -or
@@ -47,22 +69,16 @@ function Export-SPConfiguration
         Write-Information "Extracting SPFarmAdministrators..."
         try
         {
-            $O365AdminAuditLogConfigModulePath = Join-Path -Path $PSScriptRoot `
-                -ChildPath "..\DSCResources\MSFT_O365AdminAuditLogConfig\MSFT_O365AdminAuditLogConfig.psm1" `
+            $SPFarmAdministratorsModulePath = Join-Path -Path $PSScriptRoot `
+                -ChildPath "..\..\DSCResources\MSFT_SPFarmAdministrators\MSFT_SPFarmAdministrators.psm1" `
                 -Resolve
 
-            $value = "Disabled"
-            if ($O365AdminAuditLogConfig.UnifiedAuditLogIngestionEnabled)
-            {
-                $value = "Enabled"
-            }
-
-            Import-Module $O365AdminAuditLogConfigModulePath | Out-Null
-            $DSCContent += Export-TargetResource -UnifiedAuditLogIngestionEnabled $value -GlobalAdminAccount $GlobalAdminAccount -IsSingleInstance 'Yes'
+            Import-Module $SPFarmAdministratorsModulePath | Out-Null
+            $DSCContent += Export-TargetResource
         }
         catch
         {
-            New-Office365DSCLogEntry -Error $_ -Message "Could not connect to Exchange Online"
+            Write-Error "Error exporting SPFarmAdministrators"
         }
     }
     #endregion
@@ -91,7 +107,7 @@ function Export-SPConfiguration
     $credsContent += "`r`n"
     $startPosition = $DSCContent.IndexOf("<# Credentials #>") + 19
     $DSCContent = $DSCContent.Insert($startPosition, $credsContent)
-    $DSCContent += "O365TenantConfig -ConfigurationData .\ConfigurationData.psd1 -GlobalAdminAccount `$GlobalAdminAccount"
+    $DSCContent += "SPFarmConfig -ConfigurationData .\ConfigurationData.psd1 -SetupAccount `$SetupAccount"
     #endregion
 
     #region Prompt the user for a location to save the extract and generate the files
@@ -140,7 +156,7 @@ function Export-SPConfiguration
     }
     #endregion
 
-    $outputDSCFile = $OutputDSCPath + "Office365TenantConfig.ps1"
+    $outputDSCFile = $OutputDSCPath + "SharePointConfig.ps1"
     $DSCContent | Out-File $outputDSCFile
 
     if (!$AzureAutomation)
@@ -149,6 +165,28 @@ function Export-SPConfiguration
         New-ConfigurationDataDocument -Path $outputConfigurationData
     }
     Invoke-Item -Path $OutputDSCPath
+}
+
+function Repair-Credentials($results)
+{
+    if ($null -ne $results)
+    {
+        <## Cleanup the InstallAccount param first (even if we may be adding it back) #>
+        if ($null -ne $results.ContainsKey("InstallAccount"))
+        {
+            $results.Remove("InstallAccount")
+        }
+
+        if ($null -ne $results.ContainsKey("PsDscRunAsCredential"))
+        {
+            $results.Remove("PsDscRunAsCredential")
+        }
+
+        $results.Add("PsDscRunAsCredential", "`$Creds" + ($Global:spFarmAccount.Username.Split('\'))[1].Replace("-", "_").Replace(".", "_").Replace("@", "").Replace(" ", ""))
+
+        return $results
+    }
+    return $null
 }
 
 function Set-SPFarmAdministrators($members)

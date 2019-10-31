@@ -57,26 +57,26 @@ function Get-TargetResource
             $version = $Solution.Properties["Version"]
             $deployedWebApplications = @($solution.DeployedWebApplications `
                 | Select-Object -ExpandProperty Url)
-    }
-    else
-    {
-        $currentState = "Absent"
-        $deployed = $false
-        $version = "0.0.0.0"
-        $deployedWebApplications = @()
-    }
+        }
+        else
+        {
+            $currentState = "Absent"
+            $deployed = $false
+            $version = "0.0.0.0"
+            $deployedWebApplications = @()
+        }
 
-    return @{
-        Name          = $params.Name
-        LiteralPath   = $LiteralPath
-        Deployed      = $deployed
-        Ensure        = $currentState
-        Version       = $version
-        WebAppUrls    = $deployedWebApplications
-        SolutionLevel = $params.SolutionLevel
+        return @{
+            Name          = $params.Name
+            LiteralPath   = $LiteralPath
+            Deployed      = $deployed
+            Ensure        = $currentState
+            Version       = $version
+            WebAppUrls    = $deployedWebApplications
+            SolutionLevel = $params.SolutionLevel
+        }
     }
-}
-return $result
+    return $result
 }
 
 function Set-TargetResource
@@ -420,6 +420,59 @@ function Test-TargetResource
     return Test-SPDscParameterState -CurrentValues $CurrentValues `
         -DesiredValues $PSBoundParameters `
         -ValuesToCheck $valuesToCheck
+}
+
+function Export-TargetResource
+{
+    [CmdletBinding()]
+    [OutputType([System.String])]
+    param()
+
+    $content = ""
+
+    $solutions = Get-SPSolution
+
+    $module = $MyInvocation.PSCommandPath
+    $params = Get-DSCFakeParameters -ModulePath $module
+
+    $i = 1
+    $total = $solutions.Length
+    foreach ($solution in $solutions)
+    {
+        Write-Host "Scanning Solution [$i/$total] {$($solution.Name)}"
+        $content += "        SPFarmSolution " + [System.Guid]::NewGuid().ToString() + "`r`n"
+        $content += "        {`r`n"
+        $params.Name = $solution.Name
+        $results = Get-TargetResource @params
+        if ($results.ContainsKey("ContainsGlobalAssembly"))
+        {
+            $results.Remove("ContainsGlobalAssembly")
+        }
+        $filePath = "`$AllNodes.Where{`$Null -ne `$_.SPSolutionPath}.SPSolutionPath+###" + $solution.Name + "###"
+        $results["LiteralPath"] = $filePath
+        $results = Repair-Credentials -results $results
+
+        $currentBlock = Get-DSCBlock -UseGetTargetResource -Params $results -ModulePath $module
+        $currentblock = Convert-DSCStringParamToVariable -DSCBlock $currentBlock -ParameterName "LiteralPath"
+        $currentBlock = $currentBlock.Replace("###", "`"")
+        $content += $currentBlock
+
+        $content += "        }`r`n"
+
+        $i++
+    }
+
+    $results.PsDscRunAsCredential = Resolve-Credentials -UserName "SetupAccount"
+
+    $results.Remove('MembersToInclude')
+    $results.Remove('MembersToExclude')
+
+    $results.Members = Set-SPFarmAdministrators $results.Members
+
+    $currentDSCBlock = Get-DSCBlock -Params $results -ModulePath $PSScriptRoot
+    $content += Convert-DSCStringParamToVariable -DSCBlock $currentDSCBlock -ParameterName "Members"
+    $content += "        }`r`n"
+    return $content
 }
 
 function Wait-SPDscSolutionJob
