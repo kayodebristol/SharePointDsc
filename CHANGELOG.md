@@ -1,5 +1,23 @@
 # Change log for SharePointDsc
 
+## v4.0
+
+The following changes will break v3.x and earlier configurations that use these
+resources:
+
+* SPSearchServiceApp
+  * Removed the WindowsServiceAccount parameter that was depricated in v3.1
+* SPUserProfileServiceApp
+  * Changed the MySiteHostLocation parameter to a required parameter
+* SPWebAppAuthentication
+  * Updated resource to add support for Basic Authentication
+
+## Unreleased
+
+* SPSearchContentSource
+  * Add CrawlVirtualServers and CrawlSites CrawlSetting for SharePoint content
+    sources.  Fix for issue #1124.
+
 ## v3.7
 
 * SPConfigWizard
