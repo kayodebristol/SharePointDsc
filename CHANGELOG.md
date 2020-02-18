@@ -38,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     a language pack is installed
 - SPContentDatabase
   - Updated DatabaseServer parameter to support null value
+- SPSearchIndexPartition
+  - Updated documentation to specifically mention that each index partition
+    requires its own dedicated RootDirectory
 - SPUserProfileServiceApp
   - Implemented ability to fix incorrectly linked proxy groups
 - SPWebApplicationExtension
