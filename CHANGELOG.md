@@ -53,9 +53,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- SharePointDsc
+  - Corrected schema.mof files of SPSubscriptionSettingServiceApp and
+    SPPasswordChangeSettings resources, which caused failed Wiki generation
 - SPSearchContentSource
   - Add CrawlVirtualServers and CrawlSites CrawlSetting for SharePoint content
     sources.
+- SPSubscriptionSettingServiceApp
+  - Corrected incorrect information in Readme file
 - SPUserProfileProperty
   - Fixed typo in user profile property test for IsSearchable.
 
